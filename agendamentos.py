@@ -1,4 +1,4 @@
-import tkinter as tk
+import tkinter as tk  #atualizado
 from tkinter import messagebox
 from db import conectar
 from datetime import datetime
@@ -24,6 +24,11 @@ def menu_agendamentos(root, frame_anterior):
     entry_data = criar_label_entry("Data (DD/MM/AAAA):", 2)
     entry_hora = criar_label_entry("Horário (HH:MM):", 3)
     entry_observacoes = criar_label_entry("Observações:", 4)
+
+    # 🟨 Variáveis de controle globais do módulo
+    agendamento_em_edicao = None
+    ids_clientes = {}
+    ids_servicos = {}
 
     def cadastrar():
         id_cliente = entry_id_cliente.get()
@@ -55,24 +60,103 @@ def menu_agendamentos(root, frame_anterior):
             messagebox.showerror("Erro", "Todos os campos devem ser preenchidos")
 
     def editar():
+        nonlocal agendamento_em_edicao, ids_clientes, ids_servicos
+        selecionado = lista.curselection()
+        if selecionado:
+            index = selecionado[0]
+            linha = lista.get(index)
+
+            try:
+                partes = linha.split(" - ")
+                agendamento_em_edicao = int(partes[0])
+
+                dados = partes[1].split(", ")
+                cliente = dados[0].replace("Cliente: ", "")
+                servico = dados[1].replace("Serviço: ", "")
+                data = dados[2].replace("Data: ", "")
+                hora = dados[3].replace("Horário: ", "")
+                obs = dados[4].replace("Observações: ", "")
+
+                entry_id_cliente.delete(0, tk.END)
+                entry_id_cliente.insert(0, ids_clientes.get(cliente, cliente))
+                entry_id_servico.delete(0, tk.END)
+                entry_id_servico.insert(0, ids_servicos.get(servico, servico))
+                entry_data.delete(0, tk.END)
+                entry_data.insert(0, data)
+                entry_hora.delete(0, tk.END)
+                entry_hora.insert(0, hora)
+                entry_observacoes.delete(0, tk.END)
+                entry_observacoes.insert(0, obs)
+            except Exception as e:
+                messagebox.showerror("Erro", f"Erro ao obter os dados do agendamento: {str(e)}")
+        else:
+            messagebox.showerror("Erro", "Selecione um agendamento para editar.")
+
+    def salvar_alteracao():
+        nonlocal agendamento_em_edicao
+        id_cliente = entry_id_cliente.get()
+        id_servico = entry_id_servico.get()
+        data = entry_data.get()
+        hora = entry_hora.get()
+        observacoes = entry_observacoes.get()
+
+        if agendamento_em_edicao is None:
+            messagebox.showwarning("Aviso", "Nenhum agendamento em edição.")
+            return
+
+        if id_cliente and id_servico and data and hora:
+            try:
+                data_convertida = datetime.strptime(data, "%d/%m/%Y").strftime("%Y-%m-%d")
+
+                conn, cursor = conectar()
+
+                cursor.execute("SELECT id FROM clientes WHERE id = ?", (id_cliente,))
+                if cursor.fetchone() is None:
+                    messagebox.showerror("Erro", f"Cliente com ID {id_cliente} não encontrado.")
+                    conn.close()
+                    return
+
+                cursor.execute("SELECT id FROM servicos WHERE id = ?", (id_servico,))
+                if cursor.fetchone() is None:
+                    messagebox.showerror("Erro", f"Serviço com ID {id_servico} não encontrado.")
+                    conn.close()
+                    return
+
+                cursor.execute("""
+                    UPDATE agendamentos 
+                    SET cliente_id = ?, servico_id = ?, data = ?, hora = ?, observacoes = ?
+                    WHERE id = ?
+                """, (id_cliente, id_servico, data_convertida, hora, observacoes, agendamento_em_edicao))
+
+                conn.commit()
+                conn.close()
+                listar()
+
+                entry_id_cliente.delete(0, tk.END)
+                entry_id_servico.delete(0, tk.END)
+                entry_data.delete(0, tk.END)
+                entry_hora.delete(0, tk.END)
+                entry_observacoes.delete(0, tk.END)
+
+                agendamento_em_edicao = None
+                messagebox.showinfo("Sucesso", "Alterações salvas com sucesso!")
+
+            except Exception as e:
+                messagebox.showerror("Erro ao salvar alterações", str(e))
+        else:
+            messagebox.showerror("Erro", "Todos os campos devem ser preenchidos")
+
+    def excluir():
         selecionado = lista.curselection()
         if selecionado:
             index = selecionado[0]
             id_agendamento = lista.get(index).split(" - ")[0]
-            id_cliente = entry_id_cliente.get()
-            id_servico = entry_id_servico.get()
-            data = entry_data.get()
-            hora = entry_hora.get()
-            observacoes = entry_observacoes.get()
-            if id_cliente and id_servico and data and hora:
+
+            confirmar = messagebox.askyesno("Confirmação", "Tem certeza que deseja excluir este agendamento?")
+            if confirmar:
                 try:
-                    data_convertida = datetime.strptime(data, "%d/%m/%Y").strftime("%Y-%m-%d")
                     conn, cursor = conectar()
-                    cursor.execute("""
-                        UPDATE agendamentos 
-                        SET cliente_id = ?, servico_id = ?, data = ?, hora = ?, observacoes = ?
-                        WHERE id = ?
-                    """, (id_cliente, id_servico, data_convertida, hora, observacoes, id_agendamento))
+                    cursor.execute("DELETE FROM agendamentos WHERE id = ?", (id_agendamento,))
                     conn.commit()
                     conn.close()
                     listar()
@@ -82,38 +166,20 @@ def menu_agendamentos(root, frame_anterior):
                     entry_hora.delete(0, tk.END)
                     entry_observacoes.delete(0, tk.END)
                 except Exception as e:
-                    messagebox.showerror("Erro ao editar", str(e))
-            else:
-                messagebox.showerror("Erro", "Todos os campos devem ser preenchidos")
-        else:
-            messagebox.showerror("Erro", "Selecione um agendamento para editar")
-
-    def excluir():
-        selecionado = lista.curselection()
-        if selecionado:
-            index = selecionado[0]
-            id_agendamento = lista.get(index).split(" - ")[0]
-            try:
-                conn, cursor = conectar()
-                cursor.execute("DELETE FROM agendamentos WHERE id = ?", (id_agendamento,))
-                conn.commit()
-                conn.close()
-                listar()
-                entry_id_cliente.delete(0, tk.END)
-                entry_id_servico.delete(0, tk.END)
-                entry_data.delete(0, tk.END)
-                entry_hora.delete(0, tk.END)
-            except Exception as e:
-                messagebox.showerror("Erro ao excluir", str(e))
+                    messagebox.showerror("Erro ao excluir", str(e))
         else:
             messagebox.showerror("Erro", "Selecione um agendamento para excluir")
 
     def listar():
+        nonlocal ids_clientes, ids_servicos
         lista.delete(0, tk.END)
+        ids_clientes = {}
+        ids_servicos = {}
+        conn = None
         try:
             conn, cursor = conectar()
             cursor.execute("""
-                SELECT a.id, c.nome, s.servico, a.data, a.hora, a.observacoes
+                SELECT a.id, c.id, c.nome, s.id, s.servico, a.data, a.hora, a.observacoes
                 FROM agendamentos a
                 JOIN clientes c ON a.cliente_id = c.id
                 JOIN servicos s ON a.servico_id = s.id
@@ -123,19 +189,25 @@ def menu_agendamentos(root, frame_anterior):
                 lista.insert(tk.END, "Nenhum agendamento encontrado.")
             else:
                 for row in resultados:
-                    data_formatada = datetime.strptime(row[3], "%Y-%m-%d").strftime("%d/%m/%Y")
-                    lista.insert(tk.END, f"{row[0]} - Cliente: {row[1]}, Serviço: {row[2]}, Data: {data_formatada}, Horário: {row[4]}, Observações: {row[5]}")
-
-            conn.close()
+                    ag_id, cli_id, cli_nome, srv_id, srv_nome, data, hora, obs = row
+                    ids_clientes[cli_nome] = cli_id
+                    ids_servicos[srv_nome] = srv_id
+                    data_formatada = datetime.strptime(data, "%Y-%m-%d").strftime("%d/%m/%Y")
+                    texto = f"{ag_id} - Cliente: {cli_nome}, Serviço: {srv_nome}, Data: {data_formatada}, Horário: {hora}, Observações: {obs}"
+                    lista.insert(tk.END, texto)
         except Exception as e:
             messagebox.showerror("Erro ao listar agendamentos", str(e))
+        finally:
+            if conn:
+                conn.close()
 
     botoes_frame = tk.Frame(frame)
     botoes_frame.place(relx=0.5, rely=0.45, anchor="n")
 
     tk.Button(botoes_frame, text="Cadastrar", command=cadastrar, width=15).grid(row=0, column=0, padx=10, pady=5)
     tk.Button(botoes_frame, text="Editar", command=editar, width=15).grid(row=0, column=1, padx=10, pady=5)
-    tk.Button(botoes_frame, text="Excluir", command=excluir, width=15).grid(row=0, column=2, padx=10, pady=5)
+    tk.Button(botoes_frame, text="Salvar Alterações", command=salvar_alteracao, width=15).grid(row=0, column=2, padx=10, pady=5)
+    tk.Button(botoes_frame, text="Excluir", command=excluir, width=15).grid(row=0, column=3, padx=10, pady=5)
 
     lista = tk.Listbox(frame, width=100)
     lista.place(relx=0.5, rely=0.6, anchor="n")
@@ -144,7 +216,7 @@ def menu_agendamentos(root, frame_anterior):
         from menu import mostrar_menu
         frame.destroy()
         mostrar_menu(root)
-
+    
     tk.Button(frame, text="Voltar ao Menu", command=voltar).place(relx=0.5, rely=0.95, anchor="s")
 
     listar()
