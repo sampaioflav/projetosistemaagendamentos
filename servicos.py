@@ -1,4 +1,4 @@
-import tkinter as tk
+import tkinter as tk  #atualizado
 from tkinter import messagebox
 from db import conectar
 from validations import validar_nome, validar_preco, validar_inteiro_positivo
@@ -173,7 +173,7 @@ def menu_servicos(root, frame_anterior=None):
     lista.pack(pady=10)
 
     def voltar():
-        from menu import mostrar_menu
+        from menu_principal import mostrar_menu
         frame.destroy()
         mostrar_menu(root)
 
