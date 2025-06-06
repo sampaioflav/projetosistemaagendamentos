@@ -1,4 +1,4 @@
-import tkinter as tk  #atualizado
+import tkinter as tk #atualizado2
 from tkinter import messagebox
 from db import conectar
 from datetime import datetime
@@ -213,10 +213,10 @@ def menu_agendamentos(root, frame_anterior):
     lista.place(relx=0.5, rely=0.6, anchor="n")
 
     def voltar():
-        from menu import mostrar_menu
+        from menu_principal import mostrar_menu
         frame.destroy()
         mostrar_menu(root)
-    
+
     tk.Button(frame, text="Voltar ao Menu", command=voltar).place(relx=0.5, rely=0.95, anchor="s")
 
     listar()
