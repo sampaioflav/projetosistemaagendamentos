@@ -25,7 +25,7 @@ def menu_agendamentos(root, frame_anterior):
     entry_hora = criar_label_entry("Horário (HH:MM):", 3)
     entry_observacoes = criar_label_entry("Observações:", 4)
 
-    # 🟨 Variáveis de controle globais do módulo
+    
     agendamento_em_edicao = None
     ids_clientes = {}
     ids_servicos = {}
