@@ -72,6 +72,6 @@ Para acessar os **relatórios do sistema**, utilize as credenciais de administra
 
 ## Autores
 
-Desenvolvido por **Flavia Sampaio, Guilherme Alves, Rafael Valongo, Ricardo dos Reis, Daniel Fontes**   
+Desenvolvido por **Flavia Sampaio**   
 Projeto acadêmico e de portfólio com foco em desenvolvimento Python com interface gráfica.  
 
