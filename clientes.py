@@ -1,4 +1,4 @@
-import tkinter as tk
+import tkinter as tk   #atualizado
 from tkinter import messagebox
 from db import conectar
 from validations import validar_nome, validar_telefone, validar_email, validar_cpf, formatar_telefone
@@ -177,7 +177,7 @@ def menu_clientes(root, frame_anterior=None):
     lista.pack(pady=10)
 
     def voltar():
-        from menu import mostrar_menu
+        from menu_principal import mostrar_menu
         frame.destroy()
         mostrar_menu(root)
 
